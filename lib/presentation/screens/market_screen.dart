@@ -80,16 +80,19 @@ class _ConquerProductRowState extends State<_ConquerProductRow> {
     _subscription?.cancel();
     super.dispose();
   }
-  Future<void> _getImagePath() async {
-    dynamic imagen = await context.read<DataCubit>().getImagePath(widget.product.itemId, widget.product.iconFrames[0]);
-    if (mounted) {
-  setState(() {
-    imagePath = imagen;
-  });
-
-  
-}
+ Future<void> _getImagePath() async {
+  String imagen = await context.read<DataCubit>().getImagePath(
+    widget.product.attributeName,
+    widget.product.iconFrames[0]
+  );
+  if (mounted) {
+    setState(() {
+      imagePath = imagen;
+    });
   }
+}
+
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
@@ -157,7 +160,6 @@ class _ConquerProductRowState extends State<_ConquerProductRow> {
                     children: [
                      const Text('seller :'),
                       Text(widget.product.sellerName),
-                      
                     ],
                   ),
                    Row(

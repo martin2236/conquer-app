@@ -16,10 +16,10 @@ class DataBase {
         onCreate: (Database db, int version) async {
           // Crear la tabla si no existe
           await db.execute('''
-            CREATE TABLE IF NOT EXISTS item_images (
-              item_id INTEGER PRIMARY KEY,
-              image_path TEXT NOT NULL
-            )
+              CREATE TABLE item_images (
+                item_name TEXT PRIMARY KEY,
+                image_path TEXT NOT NULL
+              )
           ''');
           print('Tablas creadas');
         },

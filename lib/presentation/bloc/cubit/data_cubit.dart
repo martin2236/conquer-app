@@ -41,35 +41,49 @@ class DataCubit extends Cubit<DataCubitState> {
    }
   }
 
- Future<String> getImagePath(int itemId, String iconFrame) async {
+Future<String> getImagePath(String itemName, String iconFrame) async {
   // Buscar en la base de datos local
+  String image;
+  if(itemName == "ExemptionToken"){
+    image = "2000049.png";
+     }else if(itemName == "1-StarDragonBall"){
+      image = "SuperDragonBall1.png";
+     }else if(itemName == "2-StarDragonBall"){
+      image = "SuperDragonBall2.png";
+     }else if(itemName == "3-StarDragonBall"){
+      image = "SuperDragonBall3.png";
+     }else if(itemName == "4-StarDragonBall"){
+      image = "SuperDragonBall4.png";
+     }else if(itemName == "5-StarDragonBall"){
+      image = "SuperDragonBall5.png";
+     }else if(itemName == "6-StarDragonBall"){
+      image = "SuperDragonBall6.png";
+     }else{
+      image = iconFrame;
+     }
+  
   final result = await db.query(
     'item_images',
-    where: 'item_id = ?',
-    whereArgs: [itemId],
+    where: 'item_name = ?',
+    whereArgs: [itemName],
   );
 
   if (result.isNotEmpty) {
-    // La imagen existe en la base de datos
+    // La imagen existe localmente
     String imagePath = result.first['image_path'] as String;
     
+    // Verificar si el archivo realmente existe
     if (await File(imagePath).exists()) {
-      print('Imagen encontrada localmente: $imagePath');
       return imagePath;
     }
-    await db.delete(
-      'item_images',
-      where: 'item_id = ?',
-      whereArgs: [itemId],
-    );
-    print('Registro eliminado de la base de datos para itemId: $itemId');
   }
 
-  print('Descargando imagen para itemId: $itemId');
-  return await _downloadAndSaveImage(itemId, iconFrame);
+  // Si llegamos aquí, necesitamos descargar la imagen
+  return await _downloadAndSaveImage(itemName, image);
 }
 
-Future<String> _downloadAndSaveImage(int itemId, String iconFrame) async {
+Future<String> _downloadAndSaveImage(String itemName, String iconFrame) async {
+  print('Descargando imagen: https://download.conqueronline.net/items/$iconFrame');
   final response = await dio.get(
     'https://download.conqueronline.net/items/$iconFrame',
     options: Options(responseType: ResponseType.bytes),
@@ -77,24 +91,26 @@ Future<String> _downloadAndSaveImage(int itemId, String iconFrame) async {
 
   if (response.statusCode == 200) {
     final documentsDirectory = await getApplicationDocumentsDirectory();
-    final filePath = '${documentsDirectory.path}/$itemId.png';
+    final filePath = '${documentsDirectory.path}/${itemName.replaceAll(' ', '_')}.png';
     Uint8List imageBytes = response.data;
 
+    // Guardar la imagen localmente
     await File(filePath).writeAsBytes(imageBytes);
 
+    // Intentar insertar en la base de datos
     try {
       await db.insert('item_images', {
-        'item_id': itemId,
+        'item_name': itemName,
         'image_path': filePath,
       });
     } catch (e) {
       print('Error al insertar en la base de datos: $e');
-      // Si falla la inserción, intentamos actualizar
+      // Si falla la inserción, intentar actualizar
       await db.update(
         'item_images',
         {'image_path': filePath},
-        where: 'item_id = ?',
-        whereArgs: [itemId],
+        where: 'item_name = ?',
+        whereArgs: [itemName],
       );
     }
 
@@ -106,18 +122,28 @@ Future<String> _downloadAndSaveImage(int itemId, String iconFrame) async {
 
 
 
- void saveFilters(String filter, dynamic value) {
-    final newFilters = Map<String, dynamic>.from(state.activeFilters);
+void saveFilters(String filter, dynamic value) {
+  final newFilters = Map<String, dynamic>.from(state.activeFilters);
   
+  if (filter == 'category') {
+    // Si cambiamos la categoría, reseteamos la subcategoría
+    if (value != null) {
+      newFilters['category'] = value;
+    } else {
+      newFilters.remove('category');
+    }
+    newFilters.remove('subCategory');
+  } else {
     if (value != null) {
       newFilters[filter] = value;
     } else {
       newFilters.remove(filter);
     }
-      
-    emit(state.copyWith(activeFilters: newFilters));
-    applyFilters();
   }
+
+  emit(state.copyWith(activeFilters: newFilters));
+  applyFilters();
+}
 
  
 
